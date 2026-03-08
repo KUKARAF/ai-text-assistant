@@ -15,15 +15,24 @@ document.head.appendChild(style);
 document.addEventListener("input", (e) => {
   const el = e.target;
 
-  const isTextField =
+  const isContentEditable = el.isContentEditable;
+  const isPlainTextField =
     el.tagName === "TEXTAREA" ||
     (el.tagName === "INPUT" && (el.type === "text" || el.type === ""));
 
-  if (!isTextField) return;
-  if (!el.value.endsWith("#AI!")) return;
+  if (!isPlainTextField && !isContentEditable) return;
 
-  const text = el.value.slice(0, -4);
-  el.value = text;
+  const currentText = isContentEditable ? el.innerText : el.value;
+  if (!currentText.endsWith("#AI!")) return;
+
+  const text = currentText.slice(0, -4);
+
+  if (isContentEditable) {
+    el.innerText = text;
+  } else {
+    el.value = text;
+  }
+
   el.classList.add("ai-loading");
 
   chrome.runtime.sendMessage({ type: "AI_REQUEST", text }, (response) => {
@@ -35,7 +44,11 @@ document.addEventListener("input", (e) => {
     }
 
     if (response?.result) {
-      el.value = response.result;
+      if (isContentEditable) {
+        el.innerText = response.result;
+      } else {
+        el.value = response.result;
+      }
     }
   });
 });
